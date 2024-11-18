@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Platform, Text, View  } from 'react-native';
+import { Image, StyleSheet, Platform, Text, View, TextInput, Button } from 'react-native';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { HelloWave } from '@/components/HelloWave';
@@ -7,17 +7,33 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { FlatList } from 'react-native-gesture-handler';
 
-
 export default function HomeScreen() {
   const [itens, setItens] = useState([]);
+  const [imoveis, setImoveis] = useState([]);
+  const [filtros, setFiltros] = useState({
+    finalidade: '',
+    tipo: '',
+    bairro: '',
+  });
+
   useEffect(() => {
-    const fechData = async () => {
+    const fetchData = async () => {
       const response = await axios.get('http://127.0.0.1:8000/itens');
       setItens(response.data);
-      console.log(itens);
     };
-    fechData();
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchImoveis = async () => {
+      const response = await axios.get('http://127.0.0.1:8000/imoveis', {
+        params: filtros,
+      });
+      setImoveis(response.data);
+    };
+    fetchImoveis();
+  }, [filtros]);
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -27,54 +43,73 @@ export default function HomeScreen() {
           style={styles.reactLogo}
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Cadastro de Pessoa</ThemedText>
-      </ThemedView>
-      <View>
-      <FlatList
-        data={itens}
-        renderItem={({ item }) => (
-          <><Text>ID: {item.id}</Text>
-            <Text>Nome: {item.nome}</Text>
-            <Text>Idade: {item.idade}</Text>
-            <Image source={{ uri: item.foto }} style={{ width: 100, height: 100 }} />
-            </>
 
-        )}
-      />
-      
-    </View>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Meu app funciona!</ThemedText>
+        <ThemedText type="title">Cadastro de Pessoa</ThemedText>
+      </ThemedView>
+
+      {/* Exibição dos itens cadastrados */}
+      <View>
+        <FlatList
+          data={itens}
+          renderItem={({ item }) => (
+            <>
+              <Text>ID: {item.id}</Text>
+              <Text>Nome: {item.nome}</Text>
+              <Text>Idade: {item.idade}</Text>
+              <Image source={{ uri: item.foto }} style={{ width: 100, height: 100 }} />
+            </>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </View>
+
+      {/* Filtros */}
+      <View style={styles.filters}>
+        <TextInput
+          style={styles.input}
+          placeholder="Finalidade (venda, locação...)"
+          value={filtros.finalidade}
+          onChangeText={(text) => setFiltros({ ...filtros, finalidade: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Tipo (casa, apartamento...)"
+          value={filtros.tipo}
+          onChangeText={(text) => setFiltros({ ...filtros, tipo: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Bairro"
+          value={filtros.bairro}
+          onChangeText={(text) => setFiltros({ ...filtros, bairro: text })}
+        />
+      </View>
+
+      {/* Exibição dos imóveis filtrados */}
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">Lista de Imóveis</ThemedText>
+      </ThemedView>
+
+      <FlatList
+        data={imoveis.slice(0, 100)}  // Adicionando o filtro para exibir apenas os 10 primeiros
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text>Nome: {item.nome}</Text>
+            <Text>Descrição: {item.descricao}</Text>
+            <Text>Valor Venda: R$ {item.valor_venda}</Text>
+            <Text>Valor Aluguel: R$ {item.valor_aluguel}</Text>
+            <Image source={{ uri: item.imagem }} style={styles.image} />
+          </View>
+        )}
+        keyExtractor={(item) => item.id.toString()}
+      />
+
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Meu app funciona!</ThemedText>
         <HelloWave />
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+
     </ParallaxScrollView>
   );
 }
@@ -95,5 +130,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  card: {
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  image: {
+    width: '100%',
+    height: 150,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  filters: {
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
   },
 });
